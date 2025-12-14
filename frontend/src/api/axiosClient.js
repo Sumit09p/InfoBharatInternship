@@ -9,7 +9,7 @@ const axiosClient = axios.create({
 });
 
 axiosClient.interceptors.request.use((config) => {
-  const token = localStorage.getItem("token");
+  const token = sessionStorage.getItem("token"); // ✅ sessionStorage ONLY
   if (token) config.headers.Authorization = `Bearer ${token}`;
   return config;
 });
@@ -18,7 +18,7 @@ axiosClient.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401) {
-      localStorage.clear();
+      sessionStorage.clear();
       window.location.href = "/login";
     }
     return Promise.reject(error);

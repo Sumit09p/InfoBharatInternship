@@ -3,7 +3,7 @@ const User = require("../models/User");
 
 const JWT_SECRET = process.env.JWT_SECRET || "change_me";
 
-// 🔐 Verify JWT token & attach fresh user
+// 🔐 VERIFY TOKEN
 async function verifyToken(req, res, next) {
   const authHeader = req.headers.authorization;
 
@@ -16,15 +16,16 @@ async function verifyToken(req, res, next) {
   try {
     const decoded = jwt.verify(token, JWT_SECRET);
 
-    // 🔴 IMPORTANT: Fetch user from DB
+    // 🔥 ALWAYS fetch fresh user from DB
     const user = await User.findById(decoded.id).select("-password");
 
     if (!user) {
       return res.status(401).json({ error: "User not found" });
     }
 
+    // 🔥 FORCE STRING ID (CRITICAL)
     req.user = {
-      id: user._id,
+      id: user._id.toString(),
       role: user.role,
     };
 
@@ -34,10 +35,10 @@ async function verifyToken(req, res, next) {
   }
 }
 
-// 🔐 Role-based access control
+// 🔐 ROLE CHECK
 function requireRole(...allowedRoles) {
   return (req, res, next) => {
-    if (!req.user || !req.user.role) {
+    if (!req.user?.role) {
       return res.status(401).json({ error: "Unauthorized" });
     }
 

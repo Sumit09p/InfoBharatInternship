@@ -7,20 +7,16 @@ const sortMap = {
   popular: { rating: -1 },
 };
 
+// ===============================
+// GET /api/listings
+// ===============================
 const getListings = async (req, res, next) => {
   try {
-    const {
-      search,
-      category,
-      location,
-      min,
-      max,
-      sort,
-    } = req.query;
+    const { search, category, location, min, max, sort } = req.query;
 
     const filters = {};
 
-    // 🔍 SEARCH (title + description + location)
+    // 🔍 SEARCH
     if (search) {
       filters.$or = [
         { title: { $regex: search, $options: "i" } },
@@ -30,16 +26,12 @@ const getListings = async (req, res, next) => {
     }
 
     // 📂 CATEGORY
-    if (category) {
-      filters.category = category;
-    }
+    if (category) filters.category = category;
 
-    // 📍 LOCATION (case-insensitive)
-    if (location) {
-      filters.location = { $regex: location, $options: "i" };
-    }
+    // 📍 LOCATION
+    if (location) filters.location = { $regex: location, $options: "i" };
 
-    // 💰 PRICE RANGE
+    // 💰 PRICE
     if (min || max) {
       filters.price = {};
       if (min) filters.price.$gte = Number(min);
@@ -48,28 +40,29 @@ const getListings = async (req, res, next) => {
 
     const sortOption = sortMap[sort] || sortMap.latest;
 
-    const listings = await Listing.find(filters)
-      .sort(sortOption)
-      .lean();
-
+    const listings = await Listing.find(filters).sort(sortOption).lean();
     res.json({ listings });
   } catch (err) {
     next(err);
   }
 };
 
+// ===============================
+// GET /api/listings/:id
+// ===============================
 const getListingById = async (req, res, next) => {
   try {
     const listing = await Listing.findById(req.params.id).lean();
-    if (!listing) {
-      return res.status(404).json({ error: "Listing not found" });
-    }
+    if (!listing) return res.status(404).json({ error: "Listing not found" });
     res.json({ listing });
   } catch (err) {
     next(err);
   }
 };
 
+// ===============================
+// POST /api/listings
+// ===============================
 const createListing = async (req, res, next) => {
   try {
     const sellerId = req.user.id;
@@ -77,7 +70,9 @@ const createListing = async (req, res, next) => {
     const { title, description, category, price, location, images } = req.body;
 
     if (!title || !category || price == null) {
-      return res.status(400).json({ error: "Title, category and price required" });
+      return res
+        .status(400)
+        .json({ error: "Title, category and price required" });
     }
 
     const listing = await Listing.create({
@@ -96,12 +91,16 @@ const createListing = async (req, res, next) => {
   }
 };
 
+// ===============================
+// PUT /api/listings/:id
+// ===============================
 const updateListing = async (req, res, next) => {
   try {
     const listing = await Listing.findById(req.params.id);
     if (!listing) return res.status(404).json({ error: "Listing not found" });
 
-    if (listing.sellerId.toString() !== req.user.id) {
+    // 🔥 CORRECT OWNERSHIP CHECK
+    if (!listing.sellerId.equals(req.user.id)) {
       return res.status(403).json({ error: "Forbidden" });
     }
 
@@ -114,12 +113,16 @@ const updateListing = async (req, res, next) => {
   }
 };
 
+// ===============================
+// DELETE /api/listings/:id
+// ===============================
 const deleteListing = async (req, res, next) => {
   try {
     const listing = await Listing.findById(req.params.id);
     if (!listing) return res.status(404).json({ error: "Listing not found" });
 
-    if (listing.sellerId.toString() !== req.user.id) {
+    // 🔥 CORRECT OWNERSHIP CHECK
+    if (!listing.sellerId.equals(req.user.id)) {
       return res.status(403).json({ error: "Forbidden" });
     }
 
