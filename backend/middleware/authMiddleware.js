@@ -1,9 +1,10 @@
 const jwt = require("jsonwebtoken");
+const User = require("../models/User");
 
 const JWT_SECRET = process.env.JWT_SECRET || "change_me";
 
-// ✅ Verify JWT token
-function verifyToken(req, res, next) {
+// 🔐 Verify JWT token & attach fresh user
+async function verifyToken(req, res, next) {
   const authHeader = req.headers.authorization;
 
   if (!authHeader || !authHeader.startsWith("Bearer ")) {
@@ -15,9 +16,16 @@ function verifyToken(req, res, next) {
   try {
     const decoded = jwt.verify(token, JWT_SECRET);
 
+    // 🔴 IMPORTANT: Fetch user from DB
+    const user = await User.findById(decoded.id).select("-password");
+
+    if (!user) {
+      return res.status(401).json({ error: "User not found" });
+    }
+
     req.user = {
-      id: decoded.id,
-      role: decoded.role,
+      id: user._id,
+      role: user.role,
     };
 
     next();
@@ -26,7 +34,7 @@ function verifyToken(req, res, next) {
   }
 }
 
-// ✅ Role-based access control
+// 🔐 Role-based access control
 function requireRole(...allowedRoles) {
   return (req, res, next) => {
     if (!req.user || !req.user.role) {
@@ -41,7 +49,6 @@ function requireRole(...allowedRoles) {
   };
 }
 
-// ✅ CORRECT EXPORT (THIS WAS THE ISSUE)
 module.exports = {
   verifyToken,
   requireRole,
