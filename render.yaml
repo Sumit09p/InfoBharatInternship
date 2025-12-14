@@ -1,0 +1,29 @@
+services:
+  # =====================
+  # BACKEND (API)
+  # =====================
+  - type: web
+    name: babbafly-backend
+    runtime: node
+    rootDir: backend
+    buildCommand: npm install
+    startCommand: npm run dev
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: JWT_SECRET
+        sync: false
+      - key: MONGO_URI
+        sync: false
+
+  # =====================
+  # FRONTEND (STATIC SITE)
+  # =====================
+  - type: static
+    name: babbafly-frontend
+    rootDir: frontend
+    buildCommand: npm install && npm run build
+    publishDir: dist
+    envVars:
+      - key: VITE_API_BASE_URL
+        value: https://babbafly-backend.onrender.com/api
