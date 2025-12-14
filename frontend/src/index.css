@@ -1,0 +1,53 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Material Elevation Utilities */
+@layer utilities {
+  .elev-1 { @apply shadow-sm; }
+  .elev-2 { @apply shadow-md; }
+  .elev-3 { @apply shadow-lg; }
+  .elev-card { @apply rounded-xl shadow-md bg-white; }
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateX(40px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.animate-slideIn {
+  animation: slideIn 0.35s ease-out;
+}
+
+.nav-link {
+  @apply text-gray-700 hover:text-primary-600 transition-colors cursor-pointer;
+}
+
+/* ---------------------------------------- */
+/* FIX: Swiper Navigation Buttons Overlap   */
+/* ---------------------------------------- */
+.swiper-button-prev,
+.swiper-button-next {
+  color: #1e88e5 !important;
+  scale: 0.7;
+  top: 45% !important;
+}
+
+.swiper-button-prev {
+  left: -5px !important;     /* move slightly inside */
+}
+
+.swiper-button-next {
+  right: -5px !important;    /* move slightly inside */
+}
+
+.swiper-button-prev:hover,
+.swiper-button-next:hover {
+  scale: 0.85;
+}
