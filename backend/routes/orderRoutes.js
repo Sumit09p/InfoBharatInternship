@@ -1,15 +1,23 @@
-const router = require('express').Router();
+const router = require("express").Router();
 const {
   createOrder,
   getUserOrders,
+  getMyOrders,
   getOrderById,
-} = require('../controllers/orderController');
-const { verifyToken } = require('../middleware/authMiddleware');
+} = require("../controllers/orderController");
+const { verifyToken } = require("../middleware/authMiddleware");
 
-// Specific route first to avoid conflict with :userId
-router.get('/order/:id', verifyToken, getOrderById);
-router.get('/:userId', verifyToken, getUserOrders);
-router.post('/', verifyToken, createOrder);
+// 🔐 REAL-WORLD HELPER (frontend uses this)
+router.get("/my", verifyToken, getMyOrders);
 
+// 🔐 TASK REQUIRED API
+router.get("/:userId", verifyToken, getUserOrders);
+
+// 🔐 SINGLE ORDER
+router.get("/order/:id", verifyToken, getOrderById);
+
+// 🔐 CREATE ORDER
+router.post("/", verifyToken, createOrder);
+
+// ✅ ALWAYS export router
 module.exports = router;
-

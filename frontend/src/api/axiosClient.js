@@ -8,17 +8,24 @@ const axiosClient = axios.create({
   headers: { "Content-Type": "application/json" },
 });
 
-axiosClient.interceptors.request.use((config) => {
-  const token = sessionStorage.getItem("token"); // ✅ sessionStorage ONLY
-  if (token) config.headers.Authorization = `Bearer ${token}`;
-  return config;
-});
+/* 🔐 ATTACH TOKEN */
+axiosClient.interceptors.request.use(
+  (config) => {
+    const token = localStorage.getItem("token"); // ✅ USE localStorage ONLY
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+    return config;
+  },
+  (error) => Promise.reject(error)
+);
 
+/* 🚨 HANDLE UNAUTHORIZED */
 axiosClient.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401) {
-      sessionStorage.clear();
+      localStorage.clear(); // ✅ keep consistent
       window.location.href = "/login";
     }
     return Promise.reject(error);

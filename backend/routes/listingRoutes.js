@@ -49,26 +49,58 @@ router.delete("/:id", verifyToken, requireRole("seller", "admin"), deleteListing
 router.get("/:id", getListingById);
 
 /* ===========================
-   RATING
+   RATING (BUYER ONLY)
 =========================== */
 router.post("/:id/rate", verifyToken, async (req, res) => {
   try {
     const { stars } = req.body;
-    if (stars < 1 || stars > 5)
+
+    if (!stars || stars < 1 || stars > 5) {
       return res.status(400).json({ error: "Invalid rating" });
+    }
 
     const listing = await Listing.findById(req.params.id);
-    if (!listing) return res.status(404).json({ error: "Listing not found" });
+    if (!listing) {
+      return res.status(404).json({ error: "Listing not found" });
+    }
 
-    const total = listing.rating * listing.ratingCount + Number(stars);
-    listing.ratingCount += 1;
-    listing.rating = total / listing.ratingCount;
+    // ❌ Prevent multiple ratings by same user
+    const alreadyRated = listing.ratings.find(
+      (r) => r.userId.toString() === req.user.id
+    );
+
+    if (alreadyRated) {
+      return res
+        .status(400)
+        .json({ error: "You have already rated this product" });
+    }
+
+    // ✅ Add rating
+    listing.ratings.push({
+      userId: req.user.id,
+      stars: Number(stars),
+    });
+
+    listing.ratingCount = listing.ratings.length;
+
+    // ⭐ Calculate average
+    const totalStars = listing.ratings.reduce(
+      (sum, r) => sum + r.stars,
+      0
+    );
+
+    listing.rating = totalStars / listing.ratingCount;
 
     await listing.save();
-    res.json({ rating: listing.rating, ratingCount: listing.ratingCount });
-  } catch {
+
+    res.json({
+      rating: listing.rating,
+      ratingCount: listing.ratingCount,
+    });
+  } catch (err) {
     res.status(500).json({ error: "Rating failed" });
   }
 });
+
 
 module.exports = router;

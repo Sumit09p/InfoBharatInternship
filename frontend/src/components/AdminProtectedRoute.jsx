@@ -1,17 +1,14 @@
-// src/components/AdminProtectedRoute.jsx
-import { Navigate } from "react-router-dom";
+import { Navigate, Outlet } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 
-export default function AdminProtectedRoute({ children }) {
+export default function AdminProtectedRoute() {
   const { user, loading } = useAuth();
 
-  if (loading) return <div className="p-6 text-center">Loading...</div>;
+  if (loading) return null;
 
-  // NOT logged in → go to admin login
-  if (!user) return <Navigate to="/admin/login" replace />;
+  if (!user || user.role !== "admin") {
+    return <Navigate to="/admin/login" replace />;
+  }
 
-  // Logged in but NOT admin
-  if (user.role !== "admin") return <Navigate to="/" replace />;
-
-  return children;
+  return <Outlet />;
 }

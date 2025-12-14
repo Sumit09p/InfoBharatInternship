@@ -1,6 +1,6 @@
 import React from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Edit, Trash } from "lucide-react";
+import { Edit, Trash, Star } from "lucide-react";
 import api from "../api/axiosClient";
 import { showToast } from "./Toast";
 
@@ -21,12 +21,22 @@ export default function ListingCard({ listing, showActions = false }) {
 
   return (
     <div className="bg-white rounded-xl shadow hover:shadow-lg transition relative">
-
       <Link to={`/listings/${listing._id}`}>
-        <img
-          src={listing.images?.[0] || "/hero-placeholder.png"}
-          className="w-full h-48 object-cover rounded-t-xl"
-        />
+        <div className="relative">
+          <img
+            src={listing.images?.[0] || "/hero-placeholder.png"}
+            className="w-full h-48 object-cover rounded-t-xl"
+          />
+
+          {listing.ratingCount > 0 && (
+            <div className="absolute top-2 left-2 bg-white/90 px-2 py-1 rounded-lg flex items-center gap-1 text-sm shadow">
+              <Star size={14} className="text-yellow-500 fill-yellow-500" />
+              <span className="font-semibold">
+                {listing.rating.toFixed(1)}
+              </span>
+            </div>
+          )}
+        </div>
       </Link>
 
       <div className="p-4">
@@ -37,7 +47,6 @@ export default function ListingCard({ listing, showActions = false }) {
         <p className="text-sm text-gray-500">{listing.location}</p>
       </div>
 
-      {/* 🔐 ACTIONS ONLY WHEN EXPLICITLY ENABLED */}
       {showActions && (
         <div className="absolute top-2 right-2 flex gap-2 bg-white p-1 rounded-lg shadow">
           <button onClick={() => navigate(`/edit-listing/${listing._id}`)}>

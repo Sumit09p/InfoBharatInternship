@@ -112,6 +112,15 @@ export default function Navbar() {
             </>
           ) : (
             <>
+
+            {/* 🔹 MY ORDERS (NEW) */}
+             <Link
+                to="/my-orders"
+                className="px-3 py-2 rounded-lg hover:bg-black/5 hover:shadow-sm transition"
+              >
+               My Orders
+             </Link>
+             
               <Link
                 to="/profile"
                 className="px-3 py-2 rounded-lg flex items-center gap-2

@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import api from "../api/axiosClient";
 import { motion } from "framer-motion";
-import { MapPin, Star } from "lucide-react";
+import { MapPin, Star, ShoppingCart } from "lucide-react";
 import StarRating from "../components/StarRating";
 import { showToast } from "../components/Toast";
 import { useAuth } from "../context/AuthContext";
@@ -17,6 +17,7 @@ export default function ListingDetails() {
   const [loading, setLoading] = useState(true);
   const [showContact, setShowContact] = useState(false);
   const [rating, setRating] = useState(0);
+  const [ordering, setOrdering] = useState(false);
 
   useEffect(() => {
     if (!id) return;
@@ -34,28 +35,70 @@ export default function ListingDetails() {
           setSeller(sres.data.user);
         }
       } catch (err) {
-        console.error(err);
+        showToast("Failed to load listing", "error");
       } finally {
         setLoading(false);
       }
     })();
   }, [id]);
 
-  const rateListing = async (stars) => {
+ /* ⭐ RATE LISTING */
+const rateListing = async (stars) => {
+  try {
+    const res = await api.post(`/listings/${listing._id}/rate`, {
+      stars: Number(stars),
+    });
+
+    setRating(res.data.rating);
+    showToast("Thanks for rating ⭐", "success");
+  } catch (err) {
+    showToast(
+      err.response?.data?.error || "Rating failed",
+      "error"
+    );
+  }
+};
+
+
+  /* 🛒 PLACE ORDER */
+  const placeOrder = async () => {
+    if (!user) {
+      navigate("/login");
+      return;
+    }
+
     try {
-      const res = await api.post(`/listings/${listing._id}/rate`, { stars });
-      setRating(res.data.rating);
-      showToast("Thanks for rating ⭐", "success");
-    } catch {
-      showToast("Rating failed", "error");
+      setOrdering(true);
+
+      await api.post("/orders", {
+        listingId: listing._id,
+        quantity: 1,
+      });
+
+      showToast("Order placed successfully 🎉", "success");
+      navigate("/my-orders");
+    } catch (err) {
+      showToast("Order failed", "error");
+    } finally {
+      setOrdering(false);
     }
   };
 
-  if (loading)
-    return <div className="min-h-screen flex items-center justify-center">Loading...</div>;
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        Loading...
+      </div>
+    );
+  }
 
-  if (!listing)
-    return <div className="min-h-screen flex items-center justify-center">Listing not found</div>;
+  if (!listing) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        Listing not found
+      </div>
+    );
+  }
 
   const mainImage = listing.images?.[0] || "/hero-placeholder.png";
 
@@ -63,16 +106,19 @@ export default function ListingDetails() {
     <div className="min-h-screen px-4 py-12 bg-slate-50">
       <div className="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-3 gap-8">
 
-        {/* LEFT */}
+        {/* LEFT — LISTING */}
         <motion.div
-          initial={{ opacity: 0, y: 8 }}
+          initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
-          className="lg:col-span-2 bg-white rounded-2xl p-6 shadow"
+          className="lg:col-span-2 bg-white rounded-2xl p-6
+                     shadow transition hover:shadow-lg border
+                     hover:border-black/10"
         >
           <img
             src={mainImage}
             alt={listing.title}
             className="w-full h-72 object-cover rounded-lg"
+            onError={(e) => (e.target.src = "/hero-placeholder.png")}
           />
 
           <h1 className="text-2xl font-bold mt-4">{listing.title}</h1>
@@ -92,17 +138,21 @@ export default function ListingDetails() {
             {rating > 0 && (
               <div className="flex items-center text-yellow-500">
                 <Star className="h-5 w-5 fill-yellow-500" />
-                <span className="ml-1 font-semibold">{rating.toFixed(1)}</span>
+                <span className="ml-1 font-semibold">
+                  {rating.toFixed(1)}
+                </span>
               </div>
             )}
           </div>
         </motion.div>
 
-        {/* RIGHT */}
+        {/* RIGHT — ACTIONS */}
         <motion.aside
-          initial={{ opacity: 0, y: 8 }}
+          initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
-          className="bg-white rounded-2xl p-6 shadow"
+          className="bg-white rounded-2xl p-6 shadow
+                     transition hover:shadow-lg border
+                     hover:border-black/10"
         >
           <h3 className="text-lg font-semibold">Seller</h3>
 
@@ -110,7 +160,9 @@ export default function ListingDetails() {
             <div className="h-12 w-12 rounded-full bg-primary-100 flex items-center justify-center text-xl font-bold">
               {seller?.name?.[0]?.toUpperCase() || "S"}
             </div>
-            <div className="font-semibold">{seller?.name || "Unknown Seller"}</div>
+            <div className="font-semibold">
+              {seller?.name || "Unknown Seller"}
+            </div>
           </div>
 
           {/* ⭐ BUYER RATING */}
@@ -121,25 +173,45 @@ export default function ListingDetails() {
             </div>
           )}
 
+          {/* 🛒 ORDER BUTTON */}
+          {user?.role === "buyer" && (
+            <button
+              onClick={placeOrder}
+              disabled={ordering}
+              className="w-full mt-6 py-2 rounded-lg bg-green-600
+                         text-white flex items-center justify-center gap-2
+                         hover:bg-green-700 transition disabled:opacity-60"
+            >
+              <ShoppingCart size={18} />
+              {ordering ? "Placing order..." : "Place Order"}
+            </button>
+          )}
+
           {/* CONTACT */}
           <div className="mt-6 space-y-3">
             <button
               onClick={() => setShowContact(!showContact)}
-              className="w-full py-2 rounded-lg bg-primary-600 text-white"
+              className="w-full py-2 rounded-lg bg-primary-600 text-white
+                         hover:bg-primary-700 transition"
             >
               {showContact ? "Hide Contact" : "Contact Seller"}
             </button>
 
             {showContact && (
-              <div className="p-3 bg-gray-50 rounded-lg animate-slideIn">
-                <p><strong>Email:</strong> {seller?.email || "N/A"}</p>
-                <p className="mt-1"><strong>Phone:</strong> {seller?.phone || "N/A"}</p>
+              <div className="p-3 bg-gray-50 rounded-lg border animate-slideIn">
+                <p>
+                  <strong>Email:</strong> {seller?.email || "N/A"}
+                </p>
+                <p className="mt-1">
+                  <strong>Phone:</strong> {seller?.phone || "N/A"}
+                </p>
               </div>
             )}
 
             <button
               onClick={() => navigate(-1)}
-              className="w-full py-2 rounded-lg bg-gray-200"
+              className="w-full py-2 rounded-lg bg-gray-200
+                         hover:bg-gray-300 transition"
             >
               Back
             </button>
