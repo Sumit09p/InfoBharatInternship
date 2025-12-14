@@ -9,88 +9,68 @@ export default function Listings() {
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  // searchParams + setter for URL-driven filters (no reload)
   const [searchParams, setSearchParams] = useSearchParams();
 
-  // derive values from URL
+  // URL params
+  const search = searchParams.get("search") || "";
   const category = searchParams.get("category") || "";
   const location = searchParams.get("location") || "";
-  const minPrice = searchParams.get("min") || "";
-  const maxPrice = searchParams.get("max") || "";
+  const min = searchParams.get("min") || "";
+  const max = searchParams.get("max") || "";
   const sort = searchParams.get("sort") || "";
 
-  // setSearchParams wrapper (keeps other params intact)
+  // update URL filters
   const updateFilter = (key, value) => {
-    const params = new URLSearchParams(searchParams.toString());
-    if (value && value !== "") params.set(key, value);
-    else params.delete(key);
-    // set params (this updates URL and re-triggers effects)
+    const params = new URLSearchParams(searchParams);
+    value ? params.set(key, value) : params.delete(key);
     setSearchParams(params);
   };
 
-  // clear filters
-  const clearFilters = () => {
-    setSearchParams({});
-  };
+  const clearFilters = () => setSearchParams({});
 
-  // Load categories once
+  // load categories
   useEffect(() => {
     api
       .get("/categories")
       .then((res) => setCategories(res.data.categories || []))
-      .catch((err) => console.error("Category load error:", err));
+      .catch(console.error);
   }, []);
 
-  // Load listings whenever URL filters change
+  // load listings when filters change
   useEffect(() => {
-    let cancelled = false;
-    async function loadListings() {
+    async function load() {
       setLoading(true);
-
-      const params = {};
-      if (category) params.category = category;
-      if (location) params.location = location;
-      if (minPrice) params.min = minPrice;
-      if (maxPrice) params.max = maxPrice;
-      if (sort) params.sort = sort;
-
       try {
-        // build query string automatically by axios params
-        const res = await api.get("/listings", { params });
-        if (cancelled) return;
+        const res = await api.get("/listings", {
+          params: { search, category, location, min, max, sort },
+        });
         setListings(res.data.listings || []);
-      } catch (err) {
-        if (!cancelled) {
-          console.error("Listings load error:", err);
-          setListings([]);
-        }
+      } catch {
+        setListings([]);
       } finally {
-        if (!cancelled) setLoading(false);
+        setLoading(false);
       }
     }
-
-    loadListings();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [category, location, minPrice, maxPrice, sort, searchParams, setSearchParams]);
+    load();
+  }, [search, category, location, min, max, sort]);
 
   return (
     <div className="max-w-7xl mx-auto px-4 pt-4 pb-8">
-      <h1 className="text-3xl font-bold text-gray-900 mb-6">Browse Listings</h1>
+      <h1 className="text-3xl font-bold text-gray-900 mb-6">
+        Browse Listings
+      </h1>
 
-      {/* Sticky Filter Bar */}
+      {/* ✅ FILTER BAR (RESTORED) */}
       <motion.div
-        initial={{ opacity: 0, y: 5 }}
+        initial={{ opacity: 0, y: 6 }}
         animate={{ opacity: 1, y: 0 }}
-        className="bg-white p-4 rounded-lg shadow mb-6 sticky top-16 z-40 backdrop-blur-sm"
+        className="bg-white p-4 rounded-lg shadow mb-6 sticky top-16 z-40"
       >
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-4">
 
           {/* Category */}
           <select
-            className="border p-3 rounded-lg text-gray-700 w-full"
+            className="border p-3 rounded-lg"
             value={category}
             onChange={(e) => updateFilter("category", e.target.value)}
           >
@@ -102,36 +82,36 @@ export default function Listings() {
             ))}
           </select>
 
-          {/* Location (auto-applies as you type) */}
+          {/* Location */}
           <input
             type="text"
-            placeholder="Location (e.g., Mumbai)"
+            placeholder="Location"
             value={location}
             onChange={(e) => updateFilter("location", e.target.value)}
-            className="border p-3 rounded-lg text-gray-700 w-full"
+            className="border p-3 rounded-lg"
           />
 
           {/* Min Price */}
           <input
             type="number"
             placeholder="Min Price"
-            value={minPrice}
+            value={min}
             onChange={(e) => updateFilter("min", e.target.value)}
-            className="border p-3 rounded-lg text-gray-700 w-full"
+            className="border p-3 rounded-lg"
           />
 
           {/* Max Price */}
           <input
             type="number"
             placeholder="Max Price"
-            value={maxPrice}
+            value={max}
             onChange={(e) => updateFilter("max", e.target.value)}
-            className="border p-3 rounded-lg text-gray-700 w-full"
+            className="border p-3 rounded-lg"
           />
 
           {/* Sort */}
           <select
-            className="border p-3 rounded-lg text-gray-700 w-full"
+            className="border p-3 rounded-lg"
             value={sort}
             onChange={(e) => updateFilter("sort", e.target.value)}
           >
@@ -142,18 +122,17 @@ export default function Listings() {
             <option value="popular">Most Popular</option>
           </select>
 
-          {/* Clear Filters */}
+          {/* Clear */}
           <button
             onClick={clearFilters}
-            className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition w-full"
-            type="button"
+            className="bg-gray-200 rounded-lg hover:bg-gray-300 transition"
           >
-            Clear Filters
+            Clear
           </button>
         </div>
       </motion.div>
 
-      {/* Listings Grid */}
+      {/* LISTINGS */}
       {loading ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
           {Array.from({ length: 6 }).map((_, i) => (
@@ -161,11 +140,11 @@ export default function Listings() {
           ))}
         </div>
       ) : listings.length ? (
-        <motion.div layout className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
           {listings.map((item) => (
             <ListingCard key={item._id} listing={item} />
           ))}
-        </motion.div>
+        </div>
       ) : (
         <div className="text-gray-500 text-lg">No listings found.</div>
       )}
